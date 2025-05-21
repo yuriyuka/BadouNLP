@@ -4,9 +4,6 @@ import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
 
-
-
-
 # Step1:建立模型
 class week2Model(nn.Module):
     def __init__(self,inputSize):
