@@ -12,15 +12,13 @@ class week2Model(nn.Module):
     def __init__(self,inputSize):
         super(week2Model,self).__init__()
         self.linear = nn.Linear(inputSize,5)    # 线性层输出五个类别的分数
-        self.action = torch.softmax   # 多分类场景激活函数选择 softmax
-        self.loss = nn.functional.cross_entropy # 损失函数选择交叉熵
+        self.loss = nn.functional.cross_entropy # 损失函数选择交叉熵内置了激活函数 softmax
     # y有值返回loss证明在训练，y没值证明在预测返回预测值
     def forward(self,x,y=None):
-        x = self.linear(x)
-        yyc = self.action(x,dim=1)
+        yyc = self.linear(x)
         if y is not None:
             y = y.squeeze().long()
-            return self.loss(x,y)
+            return self.loss(yyc,y)
         else:
             return yyc
 
