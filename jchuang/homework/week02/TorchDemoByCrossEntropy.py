@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 用交叉熵实现一个多分类任务，五维随机向量最大的数字在哪维就属于哪一类。
 
 """
-T
 
 class TorchModel(nn.Module):
     def __init__(self, input_size):
