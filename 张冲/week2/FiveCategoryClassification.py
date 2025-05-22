@@ -25,10 +25,7 @@ class ClassificationModel(nn.Module):
 # 生成一个样本, 样本的生成方法，代表了我们要学习的规律
 def build_sample():
     x = np.random.random(5)
-    x_max_index = 0
-    for i in range(5):
-        if x[i] > x[x_max_index]:
-            x_max_index = i
+    x_max_index = np.argmax(x)
     y = np.zeros(5)
     y[x_max_index] = 1
     return x, y
@@ -72,7 +69,7 @@ def evaluate(model):
     return correct / (correct + wrong)
 
 
-def main():
+def train():
     # 配置参数
     epoch_num = 80  # 训练轮数
     batch_size = 20  # 每次训练样本个数
@@ -112,37 +109,24 @@ def main():
     plt.show()
     return
 
-
-def get_max(arr):
-    max_index = 0
-    for i in range(5):
-        if arr[i] > arr[max_index]:
-            max_index = i
-    return max_index, arr[max_index]
-
-
 # 使用训练好的模型做预测
-def predict(model_path, input_vec):
+def predict(model_path, pred_size):
     input_size = 5
     output_size = 5
+    input_vec = np.random.random((pred_size, 5))
     model = ClassificationModel(input_size, output_size)
     model.load_state_dict(torch.load(model_path))  # 加载训练好的权重
     print(model.state_dict())
-
     model.eval()  # 测试模式
     with torch.no_grad():  # 不计算梯度
         result = model.forward(torch.FloatTensor(input_vec))  # 模型预测
     for vec, res in zip(input_vec, result):
-        vec_max_index, vec_max_value = get_max(vec)
-        res_max_index, res_max_value = get_max(res)
+        vec_max_index = np.argmax(vec)
+        res_max_index = np.argmax(res)
         print("输入：%s, 实际分类%d,  预测概率最大分类%d,  概率为%f" % (
-        vec, vec_max_index, res_max_index, res_max_value))  # 打印结果
+        vec, vec_max_index, res_max_index, res[res_max_index]))  # 打印结果
 
 
 if __name__ == "__main__":
-    # main()
-    test_vec = [[0.07889086, 0.15229675, 0.31082123, 0.03504317, 0.88920843],
-                [0.74963533, 0.5524256, 0.95758807, 0.95520434, 0.84890681],
-                [0.00797868, 0.67482528, 0.13625847, 0.34675372, 0.19871392],
-                [0.09349776, 0.59416669, 0.92579291, 0.41567412, 0.1358894]]
-    predict("model.bin", test_vec)
+    # train()
+    predict("model.bin", 10)
