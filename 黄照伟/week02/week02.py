@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt # 数据可视化
 """
 基于pytorch框架编写模型训练
 实现一个自行构造的找规律(机器学习)任务
-规律：x是一个5维向量，如果第1个数>第5个数，则为正样本，反之为负样本
+规律：x是一个5维向量，从5个数中获取最大的数的下标值.将模型预测结果 与 实际下标进行比较.
 """
 
 # 定义神经网络模型
@@ -57,9 +57,9 @@ def evaluate(model):
     with torch.no_grad(): # 禁用梯度计算
         y_pred = model(x) # 模型预测
         predicted = torch.argmax(y_pred,dim=1)
-        # 如果预测值 和 实际分类的标记一致
+        # 如果模型预测值 和 实际分类的标记一致 则正确值+1
         for y_p ,y_t in zip(predicted,y):
-            if y_t == y_t:
+            if y_t == y_p:
                 correct += 1
             else:
                 wrong += 1
