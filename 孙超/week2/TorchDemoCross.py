@@ -55,7 +55,6 @@ def evaluate(model):
     model.eval()
     test_sample_num = 100
     x, y = build_dataset(test_sample_num)
-    print("本次预测集中共有%d个正样本，%d个负样本" % (sum(y), test_sample_num - sum(y)))
     correct, wrong = 0, 0
     with torch.no_grad():
         y_pred = model(x)  # 模型预测 model.forward(x)
