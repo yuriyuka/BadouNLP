@@ -4,21 +4,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn as nn
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 # 第一步，X:随机生成10000个五维数据，y:然后得到其中最大的那个数据
-def build_sample():
-    x = np.random.randint(1, 101, size=5)
-    y = np.argmax(x)  # 返回最大值的位置索引，如 3
-    return x, y
-
-def build_dataset(total_sample_num):
-    X = []
-    Y = []
-    for i in range(total_sample_num):
-        x, y = build_sample()
-        X.append(x)
-        Y.append([y])
-    return torch.FloatTensor(X), torch.FloatTensor(Y)
-
+def build_dataset(num_samples):
+    x = np.random.randint(1, 101, size=(num_samples, 5))
+    y = np.argmax(x, axis=1)
+    return torch.FloatTensor(x), torch.LongTensor(y)
 
 
 # 第二步，用pytorch 建立一个模型
@@ -31,7 +24,6 @@ class TorchModel(torch.nn.Module):
         self.linear2 = nn.Linear(64, 32)
         self.activation2 = nn.ReLU()
         self.linear3 = nn.Linear(32, input_size)
-
         #self.cross_entropy = torch.nn.CrossEntropyLoss() # loss 函数采用交叉熵损失
 
     def forward(self, x, y=None):
@@ -45,25 +37,25 @@ class TorchModel(torch.nn.Module):
 
 
  
-def evaluate(model, test_loader):
+# 准确率评估函数
+def evaluate(model, data_loader):
     model.eval()
+    correct, total = 0, 0
     with torch.no_grad():
-        correct = 0
-        total = 0
-        for data in test_loader:
-            inputs, labels = data
+        for inputs, labels in data_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
             y_pred = model(inputs)
-            _, predicted = torch.max(y_pred, 1)
-            total += labels.size(0)
+            predicted = torch.argmax(y_pred, dim=1)
             correct += (predicted == labels).sum().item()
-            accuracy = 100 * correct / total
-    print('Accuracy of the model on the test set: %d %%' % (accuracy))
+            total += labels.size(0)
+    accuracy = 100 * correct / total
+    print(f"Accuracy on test set: {accuracy:.2f}%")
     return accuracy
 
 
 
 def main():
-    epoch = 1000
+    num_epochs = 1000
     batch_size = 32
     learning_rate = 0.001
     input_size = 5
@@ -89,25 +81,27 @@ def main():
 
     # 3. 创建数据加载器
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, shuffle=False)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
 
     # 4. 训练模型
-    for epoch in range(epoch):
+    for epoch in range(num_epochs):
         model.train()
-        for i, data in enumerate(train_loader):
-            inputs, labels = data
-            logits = model(inputs)  # 模型预测
+        total_loss = 0.0
+        for inputs, labels in train_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
+            optimizer.zero_grad()
+            logits = model(inputs)
+            loss = loss_fn(logits, labels)
+            loss.backward()
+            optimizer.step()
+            total_loss += loss.item()
 
-            labels = labels.squeeze().long()
-            loss = loss_fn(logits, labels)  # 计算损失
-            optimizer.zero_grad()  # 清空梯度
-            loss.backward()  # 反向传播
-            optimizer.step()  # 更新参数
+        if (epoch + 1) % 50 == 0 or epoch == 0:
+            avg_loss = total_loss / len(train_loader)
+            acc = evaluate(model, test_loader)
+            print(f"Epoch {epoch+1}/{num_epochs}, Loss: {avg_loss:.4f}")
+            log.append((acc, avg_loss))
 
-        if (epoch + 1) % 100 == 0:
-            print('Epoch [%d/%d], Loss: %.4f' % (epoch + 1, epoch, loss.item()))
-            acc = evaluate(model, test_loader)  # 测试本轮模型结果
-            log.append([acc, loss.item()])
     # 画图
     print(log)
     plt.plot(range(len(log)), [l[0] for l in log], label="acc")  # 画acc曲线
@@ -120,3 +114,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
