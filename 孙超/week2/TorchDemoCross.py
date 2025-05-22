@@ -20,9 +20,8 @@ class TorchModel(nn.Module):
     def __init__(self, input_size):
         super(TorchModel, self).__init__()
         self.linear = nn.Linear(input_size, 5)  # 线性层
-        self.loss = nn.CrossEntropyLoss()  # loss函数采用均方差损失
+        self.loss = nn.CrossEntropyLoss()  # loss函数采用交叉熵
 
-    # 当输入真实标签，返回loss值；无真实标签，返回预测值
     def forward(self, x, y=None):
         y_pred = self.linear(x)  # (batch_size, input_size) -> (batch_size, 5)
         if y is not None:
