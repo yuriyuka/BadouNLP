@@ -1,4 +1,3 @@
-
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
@@ -38,9 +37,12 @@ class TorchModel(torch.nn.Module):
 
  
 # 准确率评估函数
-def evaluate(model, data_loader):
+def evaluate(model):
     model.eval()
     correct, total = 0, 0
+    X, Y = build_dataset(1000)
+    test_dataset = torch.utils.data.TensorDataset(X, Y)
+    data_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
     with torch.no_grad():
         for inputs, labels in data_loader:
             inputs, labels = inputs.to(device), labels.to(device)
@@ -74,14 +76,12 @@ def main():
 
     # 2. 将数据集分为训练集和测试集
     train_size = int(0.8 * len(X))
-    test_size = len(X) - train_size
 
     train_dataset = torch.utils.data.TensorDataset(X[:train_size], Y[:train_size])
-    test_dataset = torch.utils.data.TensorDataset(X[train_size:], Y[train_size:])
 
     # 3. 创建数据加载器
     train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32)
+
 
     # 4. 训练模型
     for epoch in range(num_epochs):
@@ -98,7 +98,7 @@ def main():
 
         if (epoch + 1) % 50 == 0 or epoch == 0:
             avg_loss = total_loss / len(train_loader)
-            acc = evaluate(model, test_loader)
+            acc = evaluate(model)
             print(f"Epoch {epoch+1}/{num_epochs}, Loss: {avg_loss:.4f}")
             log.append((acc, avg_loss))
 
@@ -114,4 +114,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
