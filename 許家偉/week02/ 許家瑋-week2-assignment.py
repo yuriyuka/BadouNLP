@@ -20,7 +20,6 @@ class TorchModel(nn.Module):
         self.linear = nn.Linear(input_size, num_classes)  # 线性层，輸出defined的類別數量
         self.loss = nn.CrossEntropyLoss() # 交叉熵损失
 
-    # 当输入真实标签，返回loss值；无真实标签，返回预测值
     def forward(self, x, y=None):
         y_pred = self.linear(x)
         if y is not None:
@@ -40,7 +39,6 @@ def build_sample() -> tuple:
 
 
 # 随机生成一批样本
-# 正负样本均匀生成
 def build_dataset(total_sample_num) -> tuple:
     X = []
     Y = []
