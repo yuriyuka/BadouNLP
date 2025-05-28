@@ -19,15 +19,16 @@ class TorchModel(nn.Module):
     def __init__(self, input_size):
         super(TorchModel, self).__init__()
         self.linear = nn.Linear(input_size, 5)  # Output 5 logits for 5 classes
-        self.loss = nn.CrossEntropyLoss()  # Cross entropy loss
+        self.loss =  nn.functional.cross_entropy # Cross entropy loss  or  nn.CrossEntropyLoss()
 
     def forward(self, x, y=None):
-        logits = self.linear(x)  # Linear layer
-        y_pred = torch.softmax(logits, dim=1)  # Apply softmax for probabilities
+        y_pred = self.linear(x)  # Linear layer
+               
         if y is not None:
-            return self.loss(logits, y)  # Compute loss
+            return self.loss(y_pred, y)  # Compute loss
         else:
-            return y_pred  # Return prediction probabilities
+            return torch.softmax(y_pred,dim=1)  # Return prediction probabilities
+            # 或者写成 return torch.softmax(y_pred,axis=-1)
 
 
 # 生成一个样本, 样本的生成方法，代表了我们要学习的规律
