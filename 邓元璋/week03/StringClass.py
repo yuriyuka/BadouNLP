@@ -7,9 +7,7 @@ import json
 
 """
 
-基于pytorch的RNN网络编写
-实现一个网络完成一个简单nlp任务
-根据字符a在字符串的位置给6个字符长的字符串分类
+构造随机包含a的字符串，使用rnn进行多分类，类别为a第一次出现在字符串中的位置。
 
 """
 
@@ -56,7 +54,8 @@ def build_vocab():
 def build_sample(vocab, sentence_length):
     x = [random.choice(list(vocab.keys())) for _ in range(sentence_length)]
     if 'a' not in x:
-        x[random.randint(0, sentence_length-1)] = 'a'  # 修改：确保生成的字符串中一定有a
+        random_number = random.randint(0, 5)
+        x[random_number] = 'a'  # 修改：确保生成的字符串中一定有a
     a_pos = x.index('a')  # 获取a的位置
     y = np.zeros(6)  # 修改：创建一个长度为6的向量
     y[a_pos] = 1  # 将a所在位置设为1
@@ -158,5 +157,5 @@ def predict(model_path, vocab_path, input_strings):
 
 if __name__ == "__main__":
     main()
-    test_strings = ["fnvfea", "wzadfg", "rqwaeg", "nakwww"]
+    test_strings = ["anvfea", "wzadfg", "rqwaeg", "aakwwa"]
     predict("model.pth", "vocab.json", test_strings)
