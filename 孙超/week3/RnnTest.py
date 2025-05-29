@@ -12,7 +12,7 @@ class TorchModel(nn.Module):
         super(TorchModel, self).__init__()
         self.embedding = nn.Embedding(len(vocab), vector_idm, padding_idx=0) #embedding层
         self.layer = nn.RNN(input_size=20, hidden_size=20, batch_first=True) #RNN
-        self.classify = nn.Linear(vector_idm, 7) #线性层
+        self.classify = nn.Linear(vector_idm, 6) #线性层 输出6类 0为没有
         self.loss = fu.cross_entropy
     def forward(self, x, y=None):
         x = self.embedding(x)
