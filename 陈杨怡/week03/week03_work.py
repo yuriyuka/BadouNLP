@@ -14,7 +14,6 @@ class RNNModel(nn.Module):
     def __init__(self, vector_dim, sentence_length, vocab):
         super(RNNModel, self).__init__()
         self.embedding = nn.Embedding(len(vocab), vector_dim, padding_idx=0)
-        self.pool = nn.AvgPool1d(sentence_length)  # 池化层
         self.rnn = nn.RNN(vector_dim, vector_dim, bias=False, batch_first=True)
         self.classify = nn.Linear(vector_dim, sentence_length + 1)
         self.loss = nn.functional.cross_entropy
