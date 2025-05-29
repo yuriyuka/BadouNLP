@@ -52,7 +52,6 @@ def build_vocab():
 
 #随机生成一个样本
 #从所有字中选取sentence_length个字
-#反之为负样本
 def build_sample(vocab, sentence_length):
     #随机从字表选取sentence_length个字，可能重复
     x = [random.choice(list(vocab.keys())) for _ in range(sentence_length)]
