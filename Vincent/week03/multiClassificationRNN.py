@@ -19,21 +19,18 @@ class TorchModel(nn.Module):
         super(TorchModel, self).__init__()
         self.embedding = nn.Embedding(len(vocab), vector_dim, padding_idx=0)  #embedding层
         # self.pool = nn.AvgPool1d(sentence_length)   #池化层
-        self.rnn = nn.RNN( vector_dim, vector_dim,bias=False, batch_first=True)
+        self.rnn = nn.RNN( vector_dim, vector_dim, bias=False, batch_first=True)
         self.classify = nn.Linear(vector_dim, sentence_length)     #线性层
-        self.activation = nn.Softmax(dim=1)  # 使用Softmax处理多分类
         self.loss = nn.CrossEntropyLoss()
 
     #当输入真实标签，返回loss值；无真实标签，返回预测值
     def forward(self, x, y=None):
         x = self.embedding(x)                      #(batch_size, sen_len) -> (batch_size, sen_len, vector_dim)
         rnn_out, _ = self.rnn(x)  # (batch_size, seq_len, vector_dim)
+        # 取最后一个时间步的输出
         x = rnn_out[:, -1, :]  # (batch_size, vector_dim)
-        # x = x.squeeze()                            #(batch_size, vector_dim, 1) -> (batch_size, vector_dim)
-        x = self.classify(x)                       #(batch_size, vector_dim) -> (batch_size, 1) 3*20 20*1 -> 3*1
-        y_pred = self.activation(x)                #(batch_size, 1) -> (batch_size, 1)
+        y_pred = self.classify(x)  # (batch_size, sentence_length)
         if y is not None:
-            y = y.long().squeeze()
             return self.loss(y_pred, y)   #预测值和真实值计算损失
         else:
             return torch.softmax(y_pred, dim=1)
@@ -52,18 +49,19 @@ def build_vocab():
 
 #随机生成一个样本
 #从所有字中选取sentence_length个字
+#反之为负样本
 def build_sample(vocab, sentence_length):
     #随机从字表选取sentence_length个字，可能重复
     x = [random.choice(list(vocab.keys())) for _ in range(sentence_length)]
-    # print(x)
-    x_len = len(x)
-    for i in range(x_len):
-        if x[i] == 'a':
-            y = i
-            break
-        if i == x_len - 1:
-            y = random.randint(0, x_len-1)
-            x[y] = 'a'
+    # 确保至少有一个'a'
+    if 'a' not in x:
+        # 随机位置插入'a'
+        pos = random.randint(0, sentence_length - 1)
+        x[pos] = 'a'
+        y = pos
+    else:
+        # 取第一个'a'的位置
+        y = x.index('a')
 
     x = [vocab.get(word, vocab['unk']) for word in x]   #将字转换成序号，为了做embedding
     return x, y
@@ -76,8 +74,8 @@ def build_dataset(sample_length, vocab, sentence_length):
     for i in range(sample_length):
         x, y = build_sample(vocab, sentence_length)
         dataset_x.append(x)
-        dataset_y.append([y])
-    return torch.LongTensor(dataset_x), torch.FloatTensor(dataset_y)
+        dataset_y.append(y)
+    return torch.LongTensor(dataset_x), torch.LongTensor(dataset_y)
 
 #建立模型
 def build_model(vocab, char_dim, sentence_length):
@@ -92,18 +90,14 @@ def evaluate(model, vocab, sample_length):
     class_counts = {i: (y == i).sum().item() for i in range(sample_length)}
     print("各类别样本数量:", class_counts)
 
-    correct, wrong = 0, 0
+    correct = 0
     with torch.no_grad():
         y_pred = model(x)      #模型预测
-        predicted_classes = torch.argmax(y_pred, dim=1).numpy()
+        predicted = torch.argmax(y_pred, dim=1)
+        correct = (predicted == y).sum().item()
 
-        for y_p, y_t in zip(predicted_classes, y):  #与真实标签进行对比
-            if y_p == y_t:
-                correct += 1
-            else:
-                wrong += 1
-    accuracy = correct / (correct + wrong)
-    print(f"正确预测个数：{correct}, 正确率：{accuracy:.4f}")
+    accuracy = correct / len(y)
+    print(f"正确预测个数：{correct}/{len(y)}, 正确率：{accuracy:.4f}")
     return accuracy
 
 
@@ -158,7 +152,7 @@ def predict(model_path, vocab_path, input_strings):
         x.append([vocab[char] for char in input_string])  #将输入序列化
         input_string = input_string[:sentence_length].ljust(sentence_length, 'z')
         # 转换为ID序列
-        ids = [vocab.get(char, vocab['unk']) for char in s]
+        ids = [vocab.get(char, vocab['unk']) for char in input_string]
         x.append(ids)
 
     model.eval()   #测试模式
