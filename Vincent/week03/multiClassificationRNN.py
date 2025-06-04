@@ -149,7 +149,6 @@ def predict(model_path, vocab_path, input_strings):
     model.load_state_dict(torch.load(model_path))             #加载训练好的权重
     x = []
     for input_string in input_strings:
-        x.append([vocab[char] for char in input_string])  #将输入序列化
         input_string = input_string[:sentence_length].ljust(sentence_length, 'z')
         # 转换为ID序列
         ids = [vocab.get(char, vocab['unk']) for char in input_string]
@@ -167,5 +166,5 @@ def predict(model_path, vocab_path, input_strings):
 
 if __name__ == "__main__":
     main()
-    # test_strings = ["fnvfee", "wz你dfg", "rqwdeg", "n我kwww"]
-    # predict("model.pth", "vocab.json", test_strings)
+    test_strings = ["fnvfaee", "waz你dfg", "rqwdeag", "na我kwww"]
+    predict("model.pth", "vocab.json", test_strings)
