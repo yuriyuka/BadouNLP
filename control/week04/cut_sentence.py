@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#week4作业
+#week4作业 - control
 import itertools
 
 #词典；每个词后方存储的是其词频，词频仅为示例，不会用到，也可自行修改
