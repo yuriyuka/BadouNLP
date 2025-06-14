@@ -42,7 +42,7 @@ def all_cut(sentence, Dict, max_len):
         lens = min(start + max_len, len(sentence))
         for i in range(lens, start, -1):
             word = sentence[start:i]
-            print(start)
+          
 
             # 如果单词在词典中，或长度=1（单字切分）
             if word in Dict or len(word) == 1:
@@ -50,7 +50,7 @@ def all_cut(sentence, Dict, max_len):
                 # print(current)
                 backtrack(i)  # 递归处理剩余部分
                 current.pop()  # 回溯，撤销选择
-                print(current)
+              
 
     backtrack(0)  # 从位置0开始回溯
     return results
