@@ -10,7 +10,7 @@ state_dict = bert.state_dict()
 total_params = 0
 print("各参数名称及其形状:")
 for name, param in state_dict.items():
-    print(f"{name}: {tuple(param.shape)}")
+    print(name,":", tuple(param.shape))
     total_params += param.numel()
 
-print(f"\nBert模型参数总量: {total_params}") 
+print("\nBert模型参数总量: ",total_params) 
