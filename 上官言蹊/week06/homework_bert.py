@@ -14,4 +14,4 @@ if __name__ == '__main__':
     state_dict = bert.state_dict()
     keys = state_dict.keys()
     print(keys)  # 查看所有的权值矩阵名称
-    print("参数量有 " + str(keys.__len__()) + " 个")  # 计算权值矩阵的数量
+    print("参数量有 " + str(bert.num_parameters()) + " 个")  # 计算参数量
