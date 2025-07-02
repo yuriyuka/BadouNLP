@@ -81,7 +81,7 @@ if __name__ == "__main__":
     #对比所有模型
     #中间日志可以关掉，避免输出过多信息
     # 超参数的网格搜索
-    for model in ['gru','gated_cnn','rcnn','stack_gated_cnn']:
+    for model in ['cnn','rnn','bert']:
         Config["model_type"] = model
         for lr in [1e-3,1e-4]:
             Config["learning_rate"] = lr
