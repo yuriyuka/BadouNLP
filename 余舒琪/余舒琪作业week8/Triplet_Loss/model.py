@@ -54,7 +54,7 @@ class SiameseNetwork(nn.Module):
 
     #sentence : (batch_size, max_length)
     def forward(self, sentence1, sentence2=None, sentence3=None):
-        #同时传入三个句子
+        #同时传入两个句子
         if sentence2 is not None:
             vector1 = self.sentence_encoder(sentence1) #vec:(batch_size, hidden_size)
             vector2 = self.sentence_encoder(sentence2)
