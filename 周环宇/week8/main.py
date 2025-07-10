@@ -1,151 +1,71 @@
 # -*- coding: utf-8 -*-
 
-import json
-import re
-import os
 import torch
+import os
 import random
-import jieba
+import os
 import numpy as np
-from torch.utils.data import Dataset, DataLoader
-from collections import defaultdict
+import logging
+from config import Config
+from model import SiameseNetwork, choose_optimizer
+from evaluate import Evaluator
+from loader import load_data
+
+logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 """
-数据加载
+模型训练主程序
 """
 
-
-class DataGenerator:
-    def __init__(self, data_path, config):
-        self.config = config
-        self.path = data_path
-        self.vocab = load_vocab(config["vocab_path"])
-        self.config["vocab_size"] = len(self.vocab)
-        self.schema = load_schema(config["schema_path"])
-        self.train_data_size = config["epoch_data_size"] #由于采取随机采样，所以需要设定一个采样数量，否则可以一直采
-        self.data_type = None  #用来标识加载的是训练集还是测试集 "train" or "test"
-        self.load()
-
-    def load(self):
-        self.data = []
-        self.knwb = defaultdict(list)
-        with open(self.path, encoding="utf8") as f:
-            for line in f:
-                line = json.loads(line)
-                #加载训练集
-                if isinstance(line, dict):
-                    self.data_type = "train"
-                    questions = line["questions"]
-                    label = line["target"]
-                    for question in questions:
-                        input_id = self.encode_sentence(question)
-                        input_id = torch.LongTensor(input_id)
-                        self.knwb[self.schema[label]].append(input_id)
-                #加载测试集
-                else:
-                    self.data_type = "test"
-                    assert isinstance(line, list)
-                    question, label = line
-                    input_id = self.encode_sentence(question)
-                    input_id = torch.LongTensor(input_id)
-                    label_index = torch.LongTensor([self.schema[label]])
-                    self.data.append([input_id, label_index])
-        return
-
-    def encode_sentence(self, text):
-        input_id = []
-        if self.config["vocab_path"] == "words.txt":
-            for word in jieba.cut(text):
-                input_id.append(self.vocab.get(word, self.vocab["[UNK]"]))
-        else:
-            for char in text:
-                input_id.append(self.vocab.get(char, self.vocab["[UNK]"]))
-        input_id = self.padding(input_id)
-        return input_id
-
-    #补齐或截断输入的序列，使其可以在一个batch内运算
-    def padding(self, input_id):
-        input_id = input_id[:self.config["max_length"]]
-        input_id += [0] * (self.config["max_length"] - len(input_id))
-        return input_id
-
-    def __len__(self):
-        if self.data_type == "train":
-            return self.config["epoch_data_size"]
-        else:
-            assert self.data_type == "test", self.data_type
-            return len(self.data)
-
-    def __getitem__(self, index):
-        if self.data_type == "train":
-            return self.random_train_sample() #随机生成一个训练样本
-        else:
-            return self.data[index]
-
-    #依照一定概率生成负样本或正样本
-    #负样本从随机两个不同的标准问题中各随机选取一个
-    #正样本从随机一个标准问题中随机选取两个
-    # def random_train_sample(self):
-    #     standard_question_index = list(self.knwb.keys())
-    #     #随机正样本
-    #     if random.random() <= self.config["positive_sample_rate"]:
-    #         p = random.choice(standard_question_index)
-    #         #如果选取到的标准问下不足两个问题，则无法选取，所以重新随机一次
-    #         if len(self.knwb[p]) < 2:
-    #             return self.random_train_sample()
-    #         else:
-    #             s1, s2 = random.sample(self.knwb[p], 2)
-    #             return [s1, s2, torch.LongTensor([1])]
-    #     #随机负样本
-    #     else:
-    #         p, n = random.sample(standard_question_index, 2)
-    #         s1 = random.choice(self.knwb[p])
-    #         s2 = random.choice(self.knwb[n])
-    #         return [s1, s2, torch.LongTensor([-1])]
-
-    #获取三元组样本
-    def random_train_sample(self):
-        standard_question_index = list(self.knwb.keys())
-        # 随机选择一个类别作为锚点的所属类别
-        p = random.choice(standard_question_index)
-        # 如果该类别下不足两个问题，则无法构造三元组，重新随机选择
-        if len(self.knwb[p]) < 2:
-            return self.random_train_sample()
-
-        # 从该类别中随机选取两个样本作为锚点和正样本
-        anchor, positive = random.sample(self.knwb[p], 2)
-
-        # 随机选择一个不同的类别作为负样本的类别
-        n = random.choice([idx for idx in standard_question_index if idx != p])
-        # 从该不同类别中随机选取一个样本作为负样本
-        negative = random.choice(self.knwb[n])
-
-        # 返回三元组 [anchor, positive, negative]
-        return [anchor, positive, negative, torch.LongTensor([1])]  # 标签可选，Triplet Loss 通常不需要标签
-
-
-#加载字表或词表
-def load_vocab(vocab_path):
-    token_dict = {}
-    with open(vocab_path, encoding="utf8") as f:
-        for index, line in enumerate(f):
-            token = line.strip()
-            token_dict[token] = index + 1  #0留给padding位置，所以从1开始
-    return token_dict
-
-#加载schema
-def load_schema(schema_path):
-    with open(schema_path, encoding="utf8") as f:
-        return json.loads(f.read())
-
-#用torch自带的DataLoader类封装数据
-def load_data(data_path, config, shuffle=True):
-    dg = DataGenerator(data_path, config)
-    dl = DataLoader(dg, batch_size=config["batch_size"], shuffle=shuffle)
-    return dl
-
-
+def main(config):
+    #创建保存模型的目录
+    if not os.path.isdir(config["model_path"]):
+        os.mkdir(config["model_path"])
+    #加载训练数据
+    train_data = load_data(config["train_data_path"], config)
+    #加载模型
+    model = SiameseNetwork(config)
+    # 标识是否使用gpu
+    cuda_flag = torch.cuda.is_available()
+    if cuda_flag:
+        logger.info("gpu可以使用，迁移模型至gpu")
+        model = model.cuda()
+    #加载优化器
+    optimizer = choose_optimizer(config, model)
+    #加载效果测试类
+    evaluator = Evaluator(config, model, logger)
+    #训练
+    for epoch in range(config["epoch"]):
+        epoch += 1
+        model.train()
+        logger.info("epoch %d begin" % epoch)
+        train_loss = []
+        # for index, batch_data in enumerate(train_data):
+        #     optimizer.zero_grad()
+        #     if cuda_flag:
+        #         batch_data = [d.cuda() for d in batch_data]
+        #     input_id1, input_id2, labels = batch_data   #输入变化时这里需要修改，比如多输入，多输出的情况
+        #     loss = model(input_id1, input_id2, labels)
+        #     train_loss.append(loss.item())
+        #     # if index % int(len(train_data) / 2) == 0:
+        #     #     logger.info("batch loss %f" % loss)
+        #     loss.backward()
+        #     optimizer.step()
+        for index, batch_data in enumerate(train_data):
+            optimizer.zero_grad()
+            if cuda_flag:
+                batch_data = [d.cuda() for d in batch_data]
+            anchor, positive, negative, label = batch_data  # 修改为四元解包
+            loss = model(anchor, positive, negative)  # label 可用于调试，也可以忽略
+            train_loss.append(loss.item())
+            loss.backward()
+            optimizer.step()
+        logger.info("epoch average loss: %f" % np.mean(train_loss))
+        evaluator.eval(epoch)
+    model_path = os.path.join(config["model_path"], "epoch_%d.pth" % epoch)
+    torch.save(model.state_dict(), model_path)
+    return
 
 if __name__ == "__main__":
-    from config import Config
-    dg = DataGenerator("valid_tag_news.json", Config)
-    print(dg[1])
+    main(Config)
