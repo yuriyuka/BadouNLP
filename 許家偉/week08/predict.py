@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import torch
+import jieba
 from loader import load_data
 from config import Config
 from model import SiameseNetwork, choose_optimizer

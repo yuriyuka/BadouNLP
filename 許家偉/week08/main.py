@@ -45,8 +45,9 @@ def main(config):
             optimizer.zero_grad()
             if cuda_flag:
                 batch_data = [d.cuda() for d in batch_data]
-            input_id1, input_id2, labels = batch_data   #输入变化时这里需要修改，比如多输入，多输出的情况
-            loss = model(input_id1, input_id2, labels)
+            # 三元組訓練：anchor, positive, negative
+            anchor, positive, negative = batch_data
+            loss = model(anchor, positive, negative)
             train_loss.append(loss.item())
             # if index % int(len(train_data) / 2) == 0:
             #     logger.info("batch loss %f" % loss)

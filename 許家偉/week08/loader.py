@@ -77,30 +77,40 @@ class DataGenerator:
 
     def __getitem__(self, index):
         if self.data_type == "train":
-            return self.random_train_sample() #随机生成一个训练样本
+            return self.triplet_training_sample() #構造三元組樣本
         else:
             return self.data[index]
 
-    #依照一定概率生成负样本或正样本
-    #负样本从随机两个不同的标准问题中各随机选取一个
-    #正样本从随机一个标准问题中随机选取两个
-    def random_train_sample(self):
+    #構造三元組樣本
+    #anchor: 錨點樣本
+    #positive: 與錨點屬於同一類的正樣本
+    #negative: 與錨點屬於不同類的負樣本
+    #返回三元組[anchor, positive, negative]
+    #anchor和positive來自同一個類別，negative來自不同類別
+    def triplet_training_sample(self):
         standard_question_index = list(self.knwb.keys())
-        #随机正样本
-        if random.random() <= self.config["positive_sample_rate"]:
-            p = random.choice(standard_question_index)
-            #如果选取到的标准问下不足两个问题，则无法选取，所以重新随机一次
-            if len(self.knwb[p]) < 2:
-                return self.random_train_sample()
-            else:
-                s1, s2 = random.sample(self.knwb[p], 2)
-                return [s1, s2, torch.LongTensor([1])]
-        #随机负样本
-        else:
-            p, n = random.sample(standard_question_index, 2)
-            s1 = random.choice(self.knwb[p])
-            s2 = random.choice(self.knwb[n])
-            return [s1, s2, torch.LongTensor([-1])]
+        
+        # 隨機選擇一個標準問題作為錨點類別
+        anchor_class = random.choice(standard_question_index)
+        
+        # 確保選中的類別至少有兩個樣本
+        if len(self.knwb[anchor_class]) < 2:
+            # 如果樣本不足，重新選擇
+            return self.triplet_training_sample()
+        
+        # 從錨點類別中隨機選擇兩個樣本作為anchor和positive
+        anchor, positive = random.sample(self.knwb[anchor_class], 2)
+        
+        # 隨機選擇一個不同的類別作為負樣本類別
+        negative_classes = [cls for cls in standard_question_index if cls != anchor_class]
+        if not negative_classes:
+            # 如果沒有其他類別，重新選擇
+            return self.triplet_training_sample()
+        
+        negative_class = random.choice(negative_classes)
+        negative = random.choice(self.knwb[negative_class])
+        
+        return [anchor, positive, negative]
 
 
 

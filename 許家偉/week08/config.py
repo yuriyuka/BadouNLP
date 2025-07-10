@@ -15,7 +15,7 @@ Config = {
     "epoch": 10,
     "batch_size": 32,
     "epoch_data_size": 200,     #每轮训练中采样数量
-    "positive_sample_rate":0.5,  #正样本比例
+    "triplet_margin": 0.1,      #三元組損失的邊距參數
     "optimizer": "adam",
     "learning_rate": 1e-3,
 }

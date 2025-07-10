@@ -33,6 +33,7 @@ class SentenceEncoder(nn.Module):
 class SiameseNetwork(nn.Module):
     def __init__(self, config):
         super(SiameseNetwork, self).__init__()
+        self.config = config #保存配置文件
         self.sentence_encoder = SentenceEncoder(config)
         self.loss = nn.CosineEmbeddingLoss()
 
@@ -48,15 +49,26 @@ class SiameseNetwork(nn.Module):
         ap = self.cosine_distance(a, p)
         an = self.cosine_distance(a, n)
         if margin is None:
-            diff = ap - an + 0.1
+            # 如果margin為None，則使用配置文件中的邊距參數
+            # 三元組損失函數的公式為：L = max(0, d(a,p) - d(a,n) + margin)
+            # 使用配置文件中的邊距參數，如果沒有則默認為0.1
+            margin_value = getattr(self, 'config', {}).get('triplet_margin', 0.1)
+            diff = ap - an + margin_value
         else:
             diff = ap - an + margin.squeeze()
         return torch.mean(diff[diff.gt(0)]) #greater than
 
     #sentence : (batch_size, max_length)
-    def forward(self, sentence1, sentence2=None, target=None):
-        #同时传入两个句子
-        if sentence2 is not None:
+    def forward(self, sentence1, sentence2=None, sentence3=None, target=None):
+        # 三元組訓練：傳入三個句子 (anchor, positive, negative)
+        if sentence2 is not None and sentence3 is not None:
+            anchor = self.sentence_encoder(sentence1)      # (batch_size, hidden_size)
+            positive = self.sentence_encoder(sentence2)    # (batch_size, hidden_size)
+            negative = self.sentence_encoder(sentence3)    # (batch_size, hidden_size)
+            # 使用三元組損失函數
+            return self.cosine_triplet_loss(anchor, positive, negative)
+        # 孿生網絡訓練：傳入兩個句子
+        elif sentence2 is not None:
             vector1 = self.sentence_encoder(sentence1) #vec:(batch_size, hidden_size)
             vector2 = self.sentence_encoder(sentence2)
             #如果有标签，则计算loss
@@ -83,6 +95,7 @@ if __name__ == "__main__":
     from config import Config
     Config["vocab_size"] = 10
     Config["max_length"] = 4
+    Config["triplet_margin"] = 0.1
     model = SiameseNetwork(Config)
     s1 = torch.LongTensor([[1,2,3,0], [2,2,0,0]])
     s2 = torch.LongTensor([[1,2,3,4], [3,2,3,4]])
