@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 import torch
-import time
-from 許家偉.week07.loader import load_data
+from loader import load_data
 
 """
 模型效果测试
-測試的檔案是valid_data_path:./training_raw.csv
-
 """
 
 class Evaluator:
@@ -21,17 +18,12 @@ class Evaluator:
         self.logger.info("开始测试第%d轮模型效果：" % epoch)
         self.model.eval()
         self.stats_dict = {"correct": 0, "wrong": 0}  # 清空上一轮结果
-
-
         for index, batch_data in enumerate(self.valid_data):
             if torch.cuda.is_available():
                 batch_data = [d.cuda() for d in batch_data]
             input_ids, labels = batch_data   #输入变化时这里需要修改，比如多输入，多输出的情况
             with torch.no_grad():
-                start_time = time.time()
                 pred_results = self.model(input_ids) #不输入labels，使用模型当前参数进行预测
-                end_time = time.time()
-                self.logger.info("预测时间：%f秒" % (end_time - start_time))
             self.write_stats(labels, pred_results)
         acc = self.show_stats()
         return acc
