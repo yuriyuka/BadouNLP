@@ -17,17 +17,18 @@ class BertSentenceEncoder(nn.Module):
         # hidden_size = config["hidden_size"]
         # vocab_size = config["vocab_size"] + 1
         # max_length = config["max_length"]
-        self.bert = BertModel.from_pretrained(config["pretrain_model_path"],return_dict=False)
+        self.bert = BertModel.from_pretrained(config["pretrain_model_path"],return_dict=True)
         self.hidden_size = self.bert.config.hidden_size
+        self.pooling = config.get("pooling_style", "max")  # 支持cls, mean, max
         # self.embedding = nn.Embedding(vocab_size, hidden_size, padding_idx=0)
-        # self.lstm = nn.LSTM(hidden_size, hidden_size, batch_first=True, bidirectional=True)
+        # # self.lstm = nn.LSTM(hidden_size, hidden_size, batch_first=True, bidirectional=True)
         # self.layer = nn.Linear(hidden_size, hidden_size)
 
         self.dropout = nn.Dropout(0.5)
 
 
 
-    #输入为问题字符编码
+    # #输入为问题字符编码
     # def forward(self, x):
     #     x = self.embedding(x)
     #     #使用lstm
@@ -37,15 +38,31 @@ class BertSentenceEncoder(nn.Module):
     #     x = nn.functional.max_pool1d(x.transpose(1, 2), x.shape[1]).squeeze()
     #     return x
 
-    def forward(self, input_ids):
-        if not input_ids.is_cuda and next(self.parameters()).is_cuda:
-            input_ids = input_ids.cuda()
+        # 添加投影头 - 增强特征表示能力
+        self.projector = nn.Sequential(
+            nn.Linear(self.hidden_size, self.hidden_size),
+            nn.GELU(),
+            nn.LayerNorm(self.hidden_size),
+            nn.Dropout(0.1)
+        )
+        logger.info("添加投影头增强特征表示")
 
-        # BERT前向传播
+    def forward(self, input_ids, attention_mask=None):
+        outputs = self.bert(input_ids, attention_mask=attention_mask)
+        last_hidden_state = outputs.last_hidden_state
 
-        _, pooled_output = self.bert(input_ids)  # 直接获取pooled_output作为句子表示
-        pooled_output = self.dropout(pooled_output)
-        return torch.nn.functional.normalize(pooled_output, p=2, dim=1)
+        # 池化策略
+        if self.pooling == "cls":
+            pooled = last_hidden_state[:, 0]  # [CLS]向量
+        elif self.pooling == "mean":
+            pooled = torch.mean(last_hidden_state, dim=1)
+        elif self.pooling == "max":
+            pooled = torch.max(last_hidden_state, dim=1).values
+        else:  # 默认使用cls
+            pooled = last_hidden_state[:, 0]
+
+        # 通过投影头
+        return self.projector(pooled)
 
 
 
