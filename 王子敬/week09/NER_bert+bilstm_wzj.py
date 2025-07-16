@@ -125,7 +125,55 @@ def load_data(data_path, config, shuffle=True):
     dl = DataLoader(dg, batch_size=config["batch_size"], shuffle=shuffle)
     return dl
 
-
+# 另外的主要修改部分为model.py中的TorchModel部分
+# class TorchModel(nn.Module):
+#     def __init__(self, config):
+#         super(TorchModel, self).__init__()
+#         class_num = config["class_num"]
+#         num_layers = config["num_layers"]
+#         bilstm_hidden_size = config["bilstm_hidden_size"]
+#         dropout = config["bilstm_dropout"]
+#         # self.embedding = nn.Embedding(vocab_size, hidden_size, padding_idx=0)
+#         # self.layer = nn.LSTM(hidden_size, hidden_size, batch_first=True, bidirectional=True, num_layers=num_layers)
+# 
+#         self.bert = BertModel.from_pretrained(config["bert_path"])
+# 
+#         self.bilstm = nn.LSTM(
+#             input_size=self.bert.config.hidden_size,
+#             hidden_size=bilstm_hidden_size,
+#             num_layers=num_layers,
+#             bidirectional=True,
+#             batch_first=True,
+#             dropout=dropout)
+#         self.classify = nn.Linear(bilstm_hidden_size * 2, class_num)
+#         self.classify = nn.Linear(self.bert.config.hidden_size, class_num)
+#         self.crf_layer = CRF(class_num, batch_first=True)
+#         self.use_crf = config["use_crf"]
+#         self.loss = torch.nn.CrossEntropyLoss(ignore_index=-1)  # loss采用交叉熵损失
+# 
+#     # 当输入真实标签，返回loss值；无真实标签，返回预测值
+#     def forward(self, x, attention_mask=None, target=None):
+#         # x = self.embedding(x)  # input shape:(batch_size, sen_len)
+#         # x, _ = self.layer(x)      # input shape:(batch_size, sen_len, input_dim)
+#         outputs = self.bert(
+#             x,
+#             attention_mask=attention_mask if attention_mask is not None else (x != 0).long())
+# 
+#         sequence_output = outputs[0]
+#         predict = self.classify(sequence_output) 
+# 
+#         if target is not None:
+#             if self.use_crf:
+#                 mask = target.gt(-1) 
+#                 return - self.crf_layer(predict, target, mask, reduction="mean")
+#             else:
+#                 # (number, class_num), (number)
+#                 return self.loss(predict.view(-1, predict.shape[-1]), target.view(-1))
+#         else:
+#             if self.use_crf:
+#                 return self.crf_layer.decode(predict)
+#             else:
+#                 return predict
 if __name__ == "__main__":
     from config import Config
     dg = DataGenerator("../ner_data/train.txt", Config)
