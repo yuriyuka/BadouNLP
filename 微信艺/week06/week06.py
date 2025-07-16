@@ -1,7 +1,7 @@
 from transformers import BertModel
 
 '''
-通过手动矩阵运算实现Bert结构
+通过手动矩阵运算实现Bert结构    
 模型文件下载 https://huggingface.co/models
 '''
 bert = BertModel.from_pretrained(r"D:\BaiduNetdiskDownload\第六周 语言模型\bert-base-chinese\bert-base-chinese", return_dict=False)
