@@ -5,6 +5,7 @@
 """
 
 Config = {
+    "vocab_size": 20000,
     "model_path": "model_output",
     "schema_path": "ner_data/schema.json",
     "train_data_path": "ner_data/train",
@@ -12,13 +13,14 @@ Config = {
     "vocab_path":"chars.txt",
     "max_length": 100,
     "hidden_size": 256,
-    "num_layers": 2,
-    "epoch": 20,
+    "num_layers": 3,
+    "epoch": 15,
     "batch_size": 16,
     "optimizer": "adam",
-    "learning_rate": 1e-3,
+    "learning_rate": 1e-4,
     "use_crf": True,
     "class_num": 9,
-    "bert_path": r"/Users/cc/PycharmProjects/BadouNLP/孙超/week7/bert-base-chinese"
+    # "bert_path": r"F:\Desktop\work_space\pretrain_models\bert-base-chinese"
+    "bert_path": "bert-base-chinese",
+    "use_bert": True
 }
-

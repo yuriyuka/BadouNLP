@@ -8,6 +8,7 @@ import random
 import jieba
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
+from transformers import BertTokenizer
 
 """
 数据加载
@@ -16,10 +17,11 @@ from torch.utils.data import Dataset, DataLoader
 
 class DataGenerator:
     def __init__(self, data_path, config):
+        self.tokenizer = BertTokenizer.from_pretrained(config["bert_path"])
         self.config = config
         self.path = data_path
-        self.vocab = load_vocab(config["vocab_path"])
-        self.config["vocab_size"] = len(self.vocab)
+        # self.vocab = load_vocab(config["vocab_path"])
+        # self.config["vocab_size"] = len(self.vocab)
         self.sentences = []
         self.schema = self.load_schema(config["schema_path"])
         self.load()
@@ -30,30 +32,22 @@ class DataGenerator:
             segments = f.read().split("\n\n")
             for segment in segments:
                 sentenece = []
-                labels = []
+                labels = [8] # 对句子使用 tokenizer对应预训练字标签时，句子开始标签
                 for line in segment.split("\n"):
                     if line.strip() == "":
                         continue
                     char, label = line.split()
                     sentenece.append(char)
                     labels.append(self.schema[label])
-                self.sentences.append("".join(sentenece))
+                sent = "".join(sentenece)
+                self.sentences.append(sent)
                 input_ids = self.encode_sentence(sentenece)
                 labels = self.padding(labels, -1)
                 self.data.append([torch.LongTensor(input_ids), torch.LongTensor(labels)])
         return
 
     def encode_sentence(self, text, padding=True):
-        input_id = []
-        if self.config["vocab_path"] == "words.txt":
-            for word in jieba.cut(text):
-                input_id.append(self.vocab.get(word, self.vocab["[UNK]"]))
-        else:
-            for char in text:
-                input_id.append(self.vocab.get(char, self.vocab["[UNK]"]))
-        if padding:
-            input_id = self.padding(input_id)
-        return input_id
+        return self.tokenizer.encode(text, add_special_tokens=True, max_length=self.config["max_length"], truncation=True, padding="max_length")
 
     #补齐或截断输入的序列，使其可以在一个batch内运算
     def padding(self, input_id, pad_token=0):
@@ -71,14 +65,6 @@ class DataGenerator:
         with open(path, encoding="utf8") as f:
             return json.load(f)
 
-#加载字表或词表
-def load_vocab(vocab_path):
-    token_dict = {}
-    with open(vocab_path, encoding="utf8") as f:
-        for index, line in enumerate(f):
-            token = line.strip()
-            token_dict[token] = index + 1  #0留给padding位置，所以从1开始
-    return token_dict
 
 #用torch自带的DataLoader类封装数据
 def load_data(data_path, config, shuffle=True):
@@ -90,5 +76,13 @@ def load_data(data_path, config, shuffle=True):
 
 if __name__ == "__main__":
     from config import Config
-    dg = DataGenerator("../ner_data/train.txt", Config)
 
+    tokenizer = BertTokenizer.from_pretrained(Config["bert_path"])
+    set1 = '我嗯嗯as的的的确确'
+    set2 = list(set1)
+    print(f'set1: {set1}')
+    print(f'set2: {set2}')
+    input_id1 = tokenizer.encode(set1, add_special_tokens=True, max_length=Config["max_length"], truncation=True, padding="max_length")
+    input_id2 = tokenizer.encode(set2, add_special_tokens=True, max_length=Config["max_length"], truncation=True, padding="max_length")
+    print(f'input_id1: {input_id1}')
+    print(f'input_id2: {input_id2}')
