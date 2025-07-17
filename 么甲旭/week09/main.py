@@ -1,54 +1,61 @@
 # -*- coding: utf-8 -*-
 
 import torch
-import torch.nn as nn
-from torch.optim import Adam, SGD
-from torchcrf import CRF
-from transformers import BertModel
+import os
+import random
+import numpy as np
+import logging
+from config import Config
+from model import TorchModel, choose_optimizer
+from evaluate import Evaluator
+from loader import load_data
+
+logging.basicConfig(level = logging.INFO,format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 """
-建立网络模型结构
+模型训练主程序
 """
 
-class TorchModel(nn.Module):
-    def __init__(self, config):
-        super(TorchModel, self).__init__()
-        class_num = config["class_num"]
-        self.bert = BertModel.from_pretrained(config["bert_path"])
-        self.classify = nn.Linear(self.bert.config.hidden_size, class_num)
-        self.crf_layer = CRF(class_num, batch_first=True)
-        self.use_crf = config["use_crf"]
-        self.loss = torch.nn.CrossEntropyLoss(ignore_index=-1)  # loss采用交叉熵损失
-
-    # 当输入真实标签，返回loss值；无真实标签，返回预测值
-    def forward(self, x, target=None):
-        outputs = self.bert(input_ids=x)
-        sequence_output = outputs[0]
-        predict = self.classify(sequence_output)  # ouput:(batch_size, sen_len, num_tags) -> (batch_size * sen_len, num_tags)
-
-        if target is not None:
-            if self.use_crf:
-                mask = target.gt(-1)
-                return - self.crf_layer(predict, target, mask, reduction="mean")
-            else:
-                # (number, class_num), (number)
-                return self.loss(predict.view(-1, predict.shape[-1]), target.view(-1))
-        else:
-            if self.use_crf:
-                return self.crf_layer.decode(predict)
-            else:
-                return predict
-
-
-def choose_optimizer(config, model):
-    optimizer = config["optimizer"]
-    learning_rate = config["learning_rate"]
-    if optimizer == "adam":
-        return Adam(model.parameters(), lr=learning_rate)
-    elif optimizer == "sgd":
-        return SGD(model.parameters(), lr=learning_rate)
-
+def main(config):
+    #创建保存模型的目录
+    if not os.path.isdir(config["model_path"]):
+        os.mkdir(config["model_path"])
+    #加载训练数据
+    train_data = load_data(config["train_data_path"], config)
+    #加载模型
+    model = TorchModel(config)
+    # 标识是否使用gpu
+    cuda_flag = torch.cuda.is_available()
+    if cuda_flag:
+        logger.info("gpu可以使用，迁移模型至gpu")
+        model = model.cuda()
+    #加载优化器
+    optimizer = choose_optimizer(config, model)
+    #加载效果测试类
+    evaluator = Evaluator(config, model, logger)
+    #训练
+    for epoch in range(config["epoch"]):
+        epoch += 1
+        model.train()
+        logger.info("epoch %d begin" % epoch)
+        train_loss = []
+        for index, batch_data in enumerate(train_data):
+            optimizer.zero_grad()
+            if cuda_flag:
+                batch_data = [d.cuda() for d in batch_data]
+            input_id, labels = batch_data   #输入变化时这里需要修改，比如多输入，多输出的情况
+            loss = model(input_id, labels)
+            loss.backward()
+            optimizer.step()
+            train_loss.append(loss.item())
+            if index % int(len(train_data) / 2) == 0:
+                logger.info("batch loss %f" % loss)
+        logger.info("epoch average loss: %f" % np.mean(train_loss))
+        evaluator.eval(epoch)
+    model_path = os.path.join(config["model_path"], "epoch_%d.pth" % epoch)
+    # torch.save(model.state_dict(), model_path)
+    return model, train_data
 
 if __name__ == "__main__":
-    from config import Config
-    model = TorchModel(Config)
+    model, train_data = main(Config)
