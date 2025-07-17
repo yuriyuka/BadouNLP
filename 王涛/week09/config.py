@@ -6,9 +6,9 @@
 
 Config = {
     "model_path": "model_output",
-    "schema_path": "ner_data/schema.json",
-    "train_data_path": "ner_data/train",
-    "valid_data_path": "ner_data/test",
+    "schema_path": "data/schema.json",
+    "train_data_path": "data/train",
+    "valid_data_path": "data/test",
     "vocab_path":"chars.txt",
     "max_length": 100,
     "hidden_size": 256,
