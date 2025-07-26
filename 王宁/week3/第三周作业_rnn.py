@@ -17,24 +17,36 @@ import random
 class TorchModel(nn.Module):
     def __init__(self, vector_dim, sentence_length, vocab):
         super(TorchModel, self).__init__()
+        # 1) Embedding 层
+        # 输入形状: (batch, sentence_length)  dtype=int64
+        # 输出形状: (batch, sentence_length, vector_dim)
         self.embedding = nn.Embedding(len(vocab), vector_dim)
+
+        # 2.1) 全局平均池化（沿 seq_len 维）
+        # 输入形状: (batch, vector_dim, seq_len)  <- 注意顺序
+        # 输出形状: (batch, vector_dim, 1)
         self.pool = nn.AvgPool1d(sentence_length)
+
         # self.rnn = nn.RNN(vector_dim, vector_dim, batch_first=True)
+
+        # 3) 分类头
+        # 输入形状: (batch, vector_dim)  <- squeeze 后
+        # 输出形状: (batch, sentence_length+1)
         self.classify = nn.Linear(vector_dim, sentence_length + 1)
         self.loss = nn.functional.cross_entropy
 
     def forward(self, x, y=None):
-        x = self.embedding(x)
+        x = self.embedding(x)           # x: (batch, seq_len) -> (batch, seq_len, vector_dim)
 
         # rnn_out, hidden = self.rnn(x)
         # x = rnn_out[:, -1, :]
 
 
-        x = x.transpose(1,2)
+        x = x.transpose(1,2)            # (batch, vector_dim, seq_len)
         # print(x.shape)
-        x = self.pool(x)
+        x = self.pool(x)                # (batch, vector_dim, 1)
         # print(x.shape)
-        x = x.squeeze(-1)
+        x = x.squeeze(-1)               # (batch, vector_dim)
         # print(x.shape)
 
         y_pred = self.classify(x)
