@@ -153,9 +153,6 @@ def build_sft_sample(tokenizer, sft_item, max_length):
         
         full_tokens = [tokenizer.cls_token_id] + prompt_tokens + [tokenizer.sep_token_id] + response_tokens + [tokenizer.sep_token_id]
     
-    # 创建targets和loss_mask（按照图片中的方案）
-    # input: [CLS] + prompt + [SEP] + response + [SEP]
-    # target: 预测下一个token，所以target是input向右移动一位
     input_ids = full_tokens[:-1]  # 去掉最后一个[SEP]作为输入
     targets = full_tokens[1:]     # 从第二个token开始作为目标
     
