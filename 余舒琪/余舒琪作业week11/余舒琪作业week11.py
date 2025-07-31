@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from transformers import BertTokenizer, BertModel
 
 """
-基于pytorch的LSTM语言模型
+使用bert添加mask实现sft训练语言模型
 """
 
 
