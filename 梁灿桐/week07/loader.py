@@ -39,10 +39,18 @@ class DataGenerator:
                     continue
                 title = line[2:].strip()
                 if self.config["model_type"] == "bert":
-                    input_id = self.tokenizer.encode(title, max_length=self.config["max_length"], pad_to_max_length=True)
+                    # 使用tokenizer的__call__方法确保正确填充
+                    inputs = self.tokenizer(
+                        title,
+                        max_length=self.config["max_length"],
+                        padding="max_length",
+                        truncation=True,
+                        return_tensors="pt"
+                    )
+                    input_id = inputs["input_ids"].squeeze(0)  # 从[batch=1, seq]变为[seq]
                 else:
                     input_id = self.encode_sentence(title)
-                input_id = torch.LongTensor(input_id)
+                    input_id = torch.LongTensor(input_id)
                 label_index = torch.LongTensor([label])
                 self.data.append([input_id, label_index])
         return
