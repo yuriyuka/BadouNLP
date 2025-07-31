@@ -74,7 +74,6 @@ if __name__ == "__main__":
     # for model in ["cnn"]:
     #     Config["model_type"] = model
     #     print("最后一轮准确率：", main(Config), "当前配置：", Config["model_type"])
-    input()
     #对比所有模型
     #中间日志可以关掉，避免输出过多信息
     # 超参数的网格搜索
