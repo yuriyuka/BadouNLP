@@ -22,6 +22,7 @@ class DataGenerator:
         self.config["pad_idx"] = self.vocab["[PAD]"]
         self.config["start_idx"] = self.vocab["[CLS]"]
         self.config["end_idx"] = self.vocab["[SEP]"]
+        self.config["mask_idx"] = self.vocab["[MASK]"]
         self.load()
 
     def load(self):
@@ -55,7 +56,7 @@ class DataGenerator:
         input_id = input_id[:length]
         input_id += [self.vocab["[PAD]"]] * (length - len(input_id))
         return input_id
-
+    
     def mask_sentence(self, content):
         """
         对输入的句子进行mask处理，使其成为预测下一个token的任务。
@@ -68,34 +69,27 @@ class DataGenerator:
             mask_seq = content_list[:i] + [self.vocab["[MASK]"]] * (l - i)
             masked_data.append(mask_seq)
         return masked_data
-    
+
+
     #输入输出转化成序列
     def prepare_data(self, title, content):
-
         l = len(content)
-        t = len(title)
+       #input_seq = self.encode_sentence(content, self.config["input_max_length"], False, False) #输入序列
+       #output_seq = self.encode_sentence(title, self.config["output_max_length"], True, False) #输出序列
         masked_seqs = self.mask_sentence(content)
+        #print(f"masked_seqs: {len(masked_seqs)}")
 
+        #gold = self.encode_sentence(title, self.config["output_max_length"], False, True) #不进入模型，用于计算loss
         for i in range(1,l):
-            input_seq = list(title) + masked_seqs[i-1]
-            output_seq = list(title) + masked_seqs[i]
+            input_seq = masked_seqs[i-1]
+            output_seq = masked_seqs[i]
             
             input_seq = self.encode_sentence(input_seq, self.config["input_max_length"])
             output_seq = self.encode_sentence(output_seq, self.config["output_max_length"])
             gold = self.encode_sentence(output_seq, self.config["output_max_length"])
-
             self.data.append([torch.LongTensor(input_seq),
                             torch.LongTensor(output_seq),
                             torch.LongTensor(gold)])
-        
-        input_seq = self.encode_sentence(content, self.config["input_max_length"], False, False) #输入序列
-        output_seq = self.encode_sentence(title, self.config["output_max_length"], True, False) #输出序列
-
-        gold = self.encode_sentence(title, self.config["output_max_length"], False, True) #不进入模型，用于计算loss
-
-        self.data.append([torch.LongTensor(input_seq),
-                          torch.LongTensor(output_seq),
-                          torch.LongTensor(gold)])
 
         return
 
@@ -118,6 +112,7 @@ def load_vocab(vocab_path):
 #用torch自带的DataLoader类封装数据
 def load_data(data_path, config, logger, shuffle=True):
     dg = DataGenerator(data_path, config, logger)
+    print(f"数据加载完成，数据量：{len(dg)}")
     dl = DataLoader(dg, batch_size=config["batch_size"], shuffle=shuffle)
     return dl
 
@@ -125,5 +120,5 @@ def load_data(data_path, config, logger, shuffle=True):
 if __name__ == "__main__":
     from config import Config
     dl = load_data(Config["train_data_path"], Config, 1)
-    print([(i, k) for i, k in enumerate(dl.dataset.data) if i == 0] )
+    #print([(i, n) for (i, n) in enumerate(dl) if i ==0])
 
