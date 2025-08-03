@@ -38,8 +38,6 @@ class LanguageModel(nn.Module):
             x, _ = self.bert(x)
             y_pred = self.classifier(x)  # output shape:(batch_size, vocab_size)
             return torch.softmax(y_pred, dim=-1)
-        #这一段看了参考答案，我写的时候一直出现参数个数不匹配
-
 #加载字表
 def build_vocab(vocab_path):
     vocab = {"<pad>":0}
