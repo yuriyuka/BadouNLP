@@ -55,7 +55,7 @@ class DataGenerator(Dataset):
     # 补齐或截断输入的序列，使其可以在一个batch内运算
     def padding(self, input_id, pad_token=0):
         input_id = input_id[:self.config["max_length"]]
-        input_id += [pad_token] * (self.config["max_length"] - len(input_id))
+        input_id += [self.schema["O"]] * (self.config["max_length"] - len(input_id))
         return input_id
 
     def __len__(self):
@@ -88,3 +88,4 @@ if __name__ == "__main__":
         print(x.shape, y.shape)
         print(x[1], y[1])
         input()
+
