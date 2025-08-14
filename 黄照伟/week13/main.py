@@ -15,9 +15,6 @@ from peft import get_peft_model, LoraConfig, TaskType
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-"""
-模型训练主程序
-"""
 
 
 def peft_wrapper(model):
