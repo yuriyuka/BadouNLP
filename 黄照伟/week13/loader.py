@@ -9,9 +9,6 @@ from torch.utils.data import Dataset, DataLoader
 from collections import defaultdict
 from transformers import BertTokenizer
 
-"""
-数据加载
-"""
 
 
 class DataGenerator:
