@@ -3,10 +3,8 @@ import logging
 import os
 from model import TorchModel
 from peft import get_peft_model, LoraConfig
-from evaluate import Evaluator
-from  loader import load_label_map
+from evaluate import Evaluator, load_label_map
 from config import Config
-from transformers import BertTokenizerFast
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -36,8 +34,10 @@ model = model.cpu()
 evaluator = Evaluator(config, model, logger)
 evaluator.eval(0)
 
+
 # 单句预测示例
 def predict(text):
+    from transformers import BertTokenizerFast
     tokenizer = BertTokenizerFast.from_pretrained(config["pretrain_model_path"])
     inputs = tokenizer(
         list(text),  # 按字符拆分
@@ -49,7 +49,9 @@ def predict(text):
     )
     with torch.no_grad():
         outputs = model(**inputs)
-    pred_logits = outputs.logits[0]  # 取第一个样本
+        # 关键修改：从元组中提取logits（通常是第0个元素）
+        pred_logits = outputs[0][0]  # 取第一个样本的logits
+
     pred_labels = torch.argmax(pred_logits, dim=1).numpy()
     # 映射标签并过滤padding
     word_ids = inputs.word_ids(batch_index=0)
@@ -60,8 +62,8 @@ def predict(text):
             result.append((token, id2label[label_id]))
     return result
 
+
 # 测试预测
 if __name__ == "__main__":
     text = "邓小平同志是中国改革开放的总设计师"
     print(predict(text))
-    # 预期输出类似：[('邓', 'B-PERSON'), ('小', 'I-PERSON'), ('平', 'I-PERSON'), ...]
