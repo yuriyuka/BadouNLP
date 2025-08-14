@@ -1,24 +1,15 @@
 import json
-
 import torch
 import torch.nn
-from peft import PeftModel
 from transformers import AutoModelForTokenClassification, BertTokenizer
 
 from config import Config
 
-
 class PredictorBertNer:
     def __init__(self, config, model_path):
         self.config = config
-        self.base_model = AutoModelForTokenClassification.from_pretrained(
-            config["pretrain_model_path"],
-            num_labels=config["class_num"]
-        )
-        self.model = PeftModel.from_pretrained(self.base_model, model_path)
+        self.model = AutoModelForTokenClassification.from_pretrained(model_path)
         self.model.eval()
-        for param in self.model.parameters():
-            param.requires_grad = False  # 冻结权重，避免预测时变动
 
         # 复用训练时的加载逻辑
         self.schema = load_schema(config["schema_path"])
@@ -73,6 +64,7 @@ class PredictorBertNer:
 
         return " ".join(pred_result)
 
+
 def load_schema(path):
     with open(path, encoding="utf8") as f:
         return json.load(f)
@@ -86,10 +78,10 @@ def load_vocab(vocab_path):
             token_dict[token] = index
     return token_dict
 
+
 if __name__ == '__main__':
     for i in range(10):
         predictor = PredictorBertNer(Config, "model_output/lora_ner_model")
         test_sentence = "中共中央党委政治局写给约翰内斯的电报"
         print(predictor.predict(test_sentence))
         print(i)
-
