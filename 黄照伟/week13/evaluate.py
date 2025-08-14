@@ -4,9 +4,7 @@ import numpy as np
 from collections import defaultdict
 from loader import load_data
 
-"""
-模型效果测试
-"""
+
 
 
 class Evaluator:
