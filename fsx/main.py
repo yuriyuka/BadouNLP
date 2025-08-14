@@ -86,7 +86,8 @@ def main(config):
     # model_path = os.path.join(config["model_path"], "epoch_%d.pth" % epoch)
     # torch.save(model.state_dict(), model_path)
     model_path = os.path.join(config["model_path"], "lora_ner_model")  # 目录名，不含.pth
-    model.save_pretrained(model_path)
+    merged_model = model.merge_and_unload()  # 合并PEFT适配器和基础模型权重（包括分类头）
+    merged_model.save_pretrained(model_path)
     return model, train_data
 
 
