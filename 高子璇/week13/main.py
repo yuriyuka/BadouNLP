@@ -51,3 +51,44 @@ def main(config):
     cuda_flag = torch.cuda.is_available()
     if cuda_flag:
         logger.info("gpu可以使用，迁移模型至gpu")
+        model = model.cuda()
+
+    # 加载优化器
+    optimizer = choose_optimizer(config, model)
+    # 加载效果测试类
+    evaluator = Evaluator(config, model, logger)
+    # 训练
+    for epoch in range(config["epoch"]):
+        epoch += 1
+        model.train()
+        logger.info("epoch %d begin" % epoch)
+        train_loss = []
+        for index, batch_data in enumerate(train_data):
+            if cuda_flag:
+                batch_data = [d.cuda() for d in batch_data]
+
+            optimizer.zero_grad()
+            input_ids, labels = batch_data
+            output = model(input_ids)[0]
+            loss = nn.CrossEntropyLoss()(output.view(-1, config["class_num"]), labels.view(-1))
+            loss.backward()
+            optimizer.step()
+
+            train_loss.append(loss.item())
+            if index % int(len(train_data) / 2) == 0:
+                logger.info("batch loss %f" % loss)
+        logger.info("epoch average loss: %f" % np.mean(train_loss))
+        evaluator.eval(epoch)
+    model_path = os.path.join(config["model_path"], "%s.pth" % tuning_tactics)
+    save_tunable_parameters(model, model_path)  # 保存模型权重
+
+def save_tunable_parameters(model, path):
+    saved_params = {
+        k: v.to("cpu")
+        for k, v in model.named_parameters()
+        if v.requires_grad
+    }
+    torch.save(saved_params, path)
+
+if __name__ == "__main__":
+    main(Config)
