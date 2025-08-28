@@ -4,6 +4,7 @@ import os
 
 # 对应表
 merges = {}
+vocab = {}
 
 
 # 读取文件
@@ -65,9 +66,6 @@ def merge(tokens: list, vocab_size: int) -> list:
 
 # 解码
 def decode(tokens):
-    vocab = {idx: bytes([idx]) for idx in range(256)}
-    for (p0, p1), idx in merges.items():
-        vocab[idx] = vocab[p0] + vocab[p1]
     tokens = b"".join(vocab[idx] for idx in tokens)
     text = tokens.decode("utf-8", errors="replace")
     return text
@@ -79,19 +77,33 @@ def encode(tokens: list, vocab_size: int):
     return merged_tokens
 
 
+# 构建词表
+def build_vocab(merges):
+    vocab = {idx: bytes([idx]) for idx in range(256)}
+    for (p0, p1), idx in merges.items():
+        vocab[idx] = vocab[p0] + vocab[p1]
+    return merges, vocab
+
+
 # 写入文件
-def write_into_file(merges):
+def write_into_file(merges, vocab):
     if not os.path.isdir("model_output"):
         os.mkdir("model_output")
-    os.path.join("model_output", "vocab.json")
-    new_data = {str(key): value for key, value in merges.items()}
-    with open('vocab.json', 'w') as f:  # 注意这里通常使用.json扩展名以表明文件内容是JSON格式的，尽管这不是强制的
-        json.dump(new_data, f)
+    vocab_path = os.path.join("model_output", "vocab.json")
+    merges_path = os.path.join("model_output", "merges.json")
+    vocab_new_data = {k: v.hex() for k, v in vocab.items()}
+    merges_new_data = {str(key): value for key, value in merges.items()}
+    with open(merges_path, 'w') as f:
+        json.dump(merges_new_data, f)
+    with open(vocab_path, 'w') as f:
+        json.dump(vocab_new_data, f)
 
 
 if __name__ == '__main__':
     corpus = open_file('corpus.txt')
+    # s = "警方迪斯科飞机上的纠纷看见撒旦发的老师都放假撒JFK就圣诞快乐房价开始垃圾分类看"
     utf_8_list = translate_str_to_UTF8Code(corpus)
-    merged_tokens = encode(utf_8_list, 4000)
+    merged_tokens = encode(utf_8_list, 500)
     # s2 = decode(merged_tokens)
-    write_into_file(merges)
+    merges, vocab = build_vocab(merges)
+    write_into_file(merges, vocab)
