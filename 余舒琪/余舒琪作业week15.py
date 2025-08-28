@@ -1,3 +1,4 @@
+# 用bpe完成词表构建和文本的序列化
 def get_stats(ids):
     counts = {}
     for pair in zip(ids, ids[1:]):
@@ -69,4 +70,5 @@ if __name__ == "__main__":
         text = f.read()
     to_tokenize_text = "早知她来，我就不来了。\n吾观颜良，如插标卖首耳。"
     main(text, to_tokenize_text)
+
 
