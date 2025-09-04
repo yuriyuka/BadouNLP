@@ -11,20 +11,20 @@ attribute_data = defaultdict(dict)
 relation_data = defaultdict(dict)
 label_data = {}
 
-# 有的实体后面有括号，里面的内容可以作为标签
+
 # 提取到标签后，把括号部分删除
 def get_label_then_clean(x, label_data):
     if re.search("（.+）", x):
         label_string = re.search("（.+）", x).group()
         for label in ["歌曲", "专辑", "电影", "电视剧"]:
             if label in label_string:
-                x = re.sub("（.+）", "", x)  # 括号内的内容删掉，因为括号是特殊字符会影响cypher语句运行
+                x = re.sub("（.+）", "", x)  # 括号内的内容删掉，因为括号是特殊字符会影响cypher语句运行 # 有的实体后面有括号，里面的内容可以作为标签
                 label_data[x] = label
             else:
                 x = re.sub("（.+）", "", x)
     return x
 
-# 修改：读取all_triplets.txt文件（包含更多的实体-关系-实体数据）
+# 读取all_triplets.txt文件 实体-关系-实体 
 print("开始读取all_triplets.txt文件...")
 with open("all_triplets.txt", encoding="utf8") as f:
     line_count = 0
@@ -44,7 +44,7 @@ with open("all_triplets.txt", encoding="utf8") as f:
 
 print(f"完成读取 {line_count} 个关系三元组")
 
-#读取实体-属性-属性值三元组文件（保持不变）
+#读取实体-属性-属性值三元组文件 
 print("开始读取triplets_enti_attr_value.txt文件...")
 with open("triplets_enti_attr_value.txt", encoding="utf8") as f:
     attr_count = 0
@@ -132,7 +132,7 @@ except Exception as e:
         except Exception as batch_error:
             print(f"批次执行出错: {batch_error}")
 
-#记录我们图谱里都有哪些实体，哪些属性，哪些关系，哪些标签
+
 print("生成图谱schema...")
 data = defaultdict(set)
 
